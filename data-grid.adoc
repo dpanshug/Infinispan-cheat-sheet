@@ -1,22 +1,19 @@
 = Infinispan cache configuration
-This cheat sheet shows Infinispan cache configuration options and capabilities that help you to achieve the best performance for your Infinispan deployment
+Use the following information and configuration examples as a quick reference for creating and configuring Infinispan caches.
 
-.Clustered cache modes
+== Clustered cache modes
+
 Distributed:: Distributed caches offer linear scalability and efficient memory usage by creating fewer copies of each entry across the cluster.
 +
-Number of owners: Distributed caches store a number of copies for each cache entry that is equal to the Number of owners that you configure.
-[,xml]
-----
-<distributed-cache owners="1"> </distributed-cache>
-----
-
+Distributed caches store a number of copies for each cache entry that is equal to the *Number of owners* that you configure.
 Replicated:: Replicated caches offer data guarantees and fault tolerance by creating a copy of all entries on each node in the cluster.
 [,xml]
 ----
 <replicated-cache> </replicated-cache>
 ----
 
-.Cluster replication
+== Cluster replication
+
 Synchronous replication:: Helps to keep your data consistent but adds latency to cluster traffic that reduces throughput for cache writes.
 [,xml]
 ----
@@ -30,9 +27,8 @@ Asynchronous replication:: Reduces latency and increases the speed of write oper
 
 == Cache configuration options
 
-Encoding:: A format, identified by a media type, that Infinispan uses to store keys and values.
-+
-TIP: Infinispan recommends the application/x-protostream media type. Protobuf gives you excellent performance as well as interoperability between client applications in different programming languages for both Hot Rod and REST endpoints.
+.Encoding
+A format, identified by a media type, that Infinispan uses to store keys and values.
 
 [,xml]
 ----
@@ -46,8 +42,6 @@ TIP: Infinispan recommends the application/x-protostream media type. Protobuf gi
 
 Expiration::
 Expiration removes entries based on a lifespan or maximum idle time and takes effect across clusters.
-. Lifespan: The maximum amount of time, in milliseconds, that cache entries can exist. If you set the value to -1, entries never expire.
-. Max-idle: The maximum amount of time, in milliseconds, that cache entries can remain idle. If no operations are performed on entries within the maximum idle time, the entries expire across the cluster. If you set the value to -1, entries never expire.
 
 [,xml]
 ----
@@ -58,7 +52,7 @@ Expiration removes entries based on a lifespan or maximum idle time and takes ef
 ----
 
 
-Statistics:: Enable collecting statistics for your cache. Keep disabled for optimal performance. 
+Statistics:: Enable collecting statistics for your cache. Keep disabled for optimal performance.
 
 [,xml]
 ----
@@ -66,19 +60,19 @@ Statistics:: Enable collecting statistics for your cache. Keep disabled for opti
 </distributed-cache>
 ----
 
-Infinispan capabilities:: 
-* Bounded 
+Infinispan capabilities::
+* Bounded
 * Indexed
 * Authorization
 * Backups
 * Transactional
 * Persistent
 
-== Bounded caches 
+== Bounded caches
 Control the size of the cache by configuring Infinispan to evict entries.
 
 Eviction strategies:::
-Eviction always takes place when you define either the max-size or the max-count (but not both) for the data container. 
+Eviction always takes place when you define either the max-size or the max-count (but not both) for the data container.
 . Max size: Defines the size of the data container in bytes. Eviction occurs when the approximate memory usage of the data container exceeds the maximum size.
 
 [,xml]
@@ -99,72 +93,74 @@ Eviction always takes place when you define either the max-size or the max-count
 
 If no strategy is defined, but max-count or max-size is configured, REMOVE is used.
 
-. Remove: Automatically evict older entries to make space for new entries. By default REMOVE is always used when you define a size for the data container.
-. Exception: Throw ContainerFullException and prevent new entries from being created. You can use this strategy only with transactional caches that use two phase commits.
+.Eviction strategies
+* `REMOVE` Infinispan performs eviction. This is the default strategy when you define a size for the data container.
+* `EXCEPTION` Infinispan throws an exception instead of evicting entries.
 
-== Indexing caches
+== Indexed caches
 Create indexes of values in your caches for faster queries and full-text search capabilities.
 
-.Indexing options for cache
-. Index storage: By default, Infinispan stores indexes in persistent storage. Persistent storage saves the index on the host file system so the index is available between restarts. Volatile storage saves the index in JVM heap memory, which means that the index does not survive restarts. You should configure volatile index storage only for small datasets.
+.Index storage
+Persistent:: On the host file system, which is the default and persists indexes between restarts.
+Volatile:: In JVM heap memory, which means that indexes do not survive restarts. You should store indexes in JVM heap memory only for small datasets.
 
-. Index startup mode: Indexing operations that ensure the index is consistent with data in the cache.
+.Index startup mode
+Indexing operations that ensure the index is consistent with data in the cache.
 
-.. Purge: Clears the index when the cache starts. 
-.. Reindex: Rebuilds the index when the cache starts.
-.. Auto: Automatically triggers an indexing operation when the cache starts. If data is volatile and the index is persistent then the cache is cleared when it starts. If data is persistent and the index is volatile then the cache is reindexed when it starts.
-.. None: Cache startup does not trigger an indexing operation. This is the default value.
+Purge:: Clears the index when the cache starts.
+Reindex:: Rebuilds the index when the cache starts.
+Auto:: Automatically triggers an indexing operation when the cache starts. If data is volatile and the index is persistent then the cache is cleared when it starts. If data is persistent and the index is volatile then the cache is reindexed when it starts.
+None:: Cache startup does not trigger an indexing operation. This is the default value.
 
-. Indexed entity: The fully qualified class names of the entities you want Infinispan to include when building the index.
-
+////
 .Index tuning
 Control how Infinispan interacts with an index to optimize performance.
 
-. Index reader: The index reader is an internal component that provides access to the indexes to perform queries. As the index content changes, Infinispan needs to refresh the reader so that search results are up to date. 
-// .. Refresh interval: Interval, in milliseconds, to reopen the index reader. By default Infinispan reads the index before each query if the index changed since the last refresh. Configuring with a value larger than zero will make some queries results stale, but query throughput will increase substantially, specially in write heavy scenarios.
+Index reader:: The index reader provides access to the indexes to perform queries. As the index content changes, Infinispan needs to refresh the reader so that search results are up to date.
+.. Refresh interval: Interval, in milliseconds, to reopen the index reader. By default Infinispan reads the index before each query if the index changed since the last refresh. Configuring with a value larger than zero will make some queries results stale, but query throughput will increase substantially, specially in write heavy scenarios.
 
-. Index writer: The index writer is an internal component that constructs an index composed of one or more segments (sub-indexes) that can be merged over time to improve performance. 
-// .. Commit interval: Amount of time, in milliseconds, that index changes that are buffered in memory are flushed to the index storage and a commit is performed. Because operation is costly, small values should be avoided. The default is 1000 ms (1 second).
-// .. Low level trace: Enables low-level trace information for indexing operations. Low-level tracing degrades performance and you should use it only as a last resource for troubleshooting.
-// .. Max buffered entries: Maximum number of entries that can be buffered in-memory before they are flushed to the index storage. Large values result in faster indexing but use more memory. When used in combination with the `ram-buffer-size` attribute, a flush occurs for whichever event happens first.
-// .. Queue count: Number of internal queues to use for each indexed type. Each queue holds a batch of modifications that is applied to the index and queues are processed in parallel. Increasing the number of queues leads to an increase of indexing throughput, but only if the bottleneck is CPU. For optimum results, do not set a value for `queue-count` that is larger than the value for `thread-pool-size`.
-// .. Queue size: Maximum number of elements each queue can hold. Increasing the `queue-size` value increases the amount of memory that is used during indexing operations. Setting a value that is too small can block indexing operations.
-// .. RAM buffered size: Maximum amount of memory that can be used for buffering added entries and deletions before they are flushed to the index storage. Large values result in faster indexing but use more memory. For faster indexing performance you should set this attribute instead of `max-buffered-entries`. When used in combination with the `max-buffered-entries` attribute, a flush occurs for whichever event happens first.
-// .. Thread pool size: Number of threads that execute write operations to the index. 
+Index writer:: The index writer constructs an index composed of one or more segments (sub-indexes) that can be merged over time to improve performance.
+.. Commit interval: Amount of time, in milliseconds, that index changes that are buffered in memory are flushed to the index storage and a commit is performed. Because operation is costly, small values should be avoided. The default is 1000 ms (1 second).
+.. Low level trace: Enables low-level trace information for indexing operations. Low-level tracing degrades performance and you should use it only as a last resource for troubleshooting.
+.. Max buffered entries: Maximum number of entries that can be buffered in-memory before they are flushed to the index storage. Large values result in faster indexing but use more memory. When used in combination with the `ram-buffer-size` attribute, a flush occurs for whichever event happens first.
+.. Queue count: Number of internal queues to use for each indexed type. Each queue holds a batch of modifications that is applied to the index and queues are processed in parallel. Increasing the number of queues leads to an increase of indexing throughput, but only if the bottleneck is CPU. For optimum results, do not set a value for `queue-count` that is larger than the value for `thread-pool-size`.
+.. Queue size: Maximum number of elements each queue can hold. Increasing the `queue-size` value increases the amount of memory that is used during indexing operations. Setting a value that is too small can block indexing operations.
+.. RAM buffered size: Maximum amount of memory that can be used for buffering added entries and deletions before they are flushed to the index storage. Large values result in faster indexing but use more memory. For faster indexing performance you should set this attribute instead of `max-buffered-entries`. When used in combination with the `max-buffered-entries` attribute, a flush occurs for whichever event happens first.
+.. Thread pool size: Number of threads that execute write operations to the index.
 
-// . Index merge: 
-// .. Calibrate by deletes: Whether the number of deleted entries in an index should be taken into account when counting the entries in the segment. Setting `false` will lead to more frequent merges caused by `max-entries`, but will more aggressively merge segments with many deleted documents, improving search performance.
-// .. Factor: Number of segments that are merged at once. With smaller values, merging happens more often, which uses more resources, but the total number of segments will be lower on average, increasing search performance. Larger values (greater than 10) are best for heavy writing scenarios.
-// .. Max entries: Maximum number of entries that an index segment can have before merging. Segments with more than this number of entries are not merged. Smaller values perform better on frequently changing indexes, larger values provide better search performance if the index does not change often.
-// .. Min size: Minimum target size of segments, in MB, for background merges. Segments smaller than this size are merged more aggressively. Setting a value that is too large might result in expensive merge operations, even though they are less frequent.
-// .. Max size: Maximum size of segments, in MB, for background merges. Segments larger than this size are never merged in the background. Settings this to a lower value helps reduce memory requirements and avoids some merging operations at the cost of optimal search speed. This attribute is ignored when forcefully merging an index and `max-forced-size` applies instead.
-// .. Max forced size: maximum size of segments, in MB, for forced merges and overrides the `max-size` attribute. Set this to the same value as `max-size` or lower. However setting the value too low degrades search performance because documents are deleted.
+. Index merge:
+.. Calibrate by deletes: Whether the number of deleted entries in an index should be taken into account when counting the entries in the segment. Setting `false` will lead to more frequent merges caused by `max-entries`, but will more aggressively merge segments with many deleted documents, improving search performance.
+.. Factor: Number of segments that are merged at once. With smaller values, merging happens more often, which uses more resources, but the total number of segments will be lower on average, increasing search performance. Larger values (greater than 10) are best for heavy writing scenarios.
+.. Max entries: Maximum number of entries that an index segment can have before merging. Segments with more than this number of entries are not merged. Smaller values perform better on frequently changing indexes, larger values provide better search performance if the index does not change often.
+.. Min size: Minimum target size of segments, in MB, for background merges. Segments smaller than this size are merged more aggressively. Setting a value that is too large might result in expensive merge operations, even though they are less frequent.
+.. Max size: Maximum size of segments, in MB, for background merges. Segments larger than this size are never merged in the background. Settings this to a lower value helps reduce memory requirements and avoids some merging operations at the cost of optimal search speed. This attribute is ignored when forcefully merging an index and `max-forced-size` applies instead.
+.. Max forced size: maximum size of segments, in MB, for forced merges and overrides the `max-size` attribute. Set this to the same value as `max-size` or lower. However setting the value too low degrades search performance because documents are deleted.
+////
 
-== Authorization:
-Authorization secures your deployment by restricting access to data based on user roles and permissions.
+== Authorization
+Secure your deployment by restricting user access to data.
 
 .Default set of roles
-. Observer
-. Application
-. Admin
-. Monitor
-. Deployer
+* Observer
+* Application
+* Admin
+* Monitor
+* Deployer
 
-== Backups:
-Defines backup locations for cache data and modifies state transfer properties.
+== Backups
+Define backup locations for cache data and modify state transfer properties.
 
-. Site configuration: 
-.. Site name: Names the remote site to which the cache backs up data.
-.. Backup strategy: Sets the strategy for backing up to a remote site.
+.Site configuration
+Site name:: The name of the remote site.
+Backup strategy:: Sets the strategy for backing up to a remote site. Infinispan performs conflict resolution with the asynchronous backup strategy.
 * ASYNC
 * SYNC
-N
-. Merge policy: A policy on how Infinispan resolves conflicting entries between backup locations when using the ASYNC strategy. You can specify one of the default merge policies or the fully qualified name of a class that implements the XSiteEntryMergePolicy interface.
 
-. Maximum cleanup delay: The maximum delay, in milliseconds, between which tombstone cleanup tasks run when using the ASYNC strategy.
+Merge policy:: A policy on how Infinispan resolves conflicting entries between backup locations when using the ASYNC strategy. You can specify one of the default merge policies or the fully qualified name of a class that implements the `XSiteEntryMergePolicy` interface.
 
-. Number of tombstone: Specify the target number of tombstones, or key metadata, to store when using the ASYNC strategy. If the number of tombstones increases beyond this number then Infinispan runs the cleanup task more frequently. Likewise, if the number of tombstones is less than this number then Infinispan does not run the cleanup task as frequently.
+Maximum cleanup delay:: The maximum delay, in milliseconds, between which tombstone cleanup tasks run when using the ASYNC strategy.
 
+Number of tombstone:: With the asynchronous backup strategy Infinispan stores metadata, known as tombstones, when it removes keys. Specify the target number of tombstones. If the number of tombstones increases beyond this number then Infinispan runs the cleanup task more frequently. Likewise, if the number of tombstones is less than this number then Infinispan does not run the cleanup task as frequently.
 
 // .. Failure policy: Controls how local writes to caches are handled if synchronous backup operations fail.
 // * Ignore: Ignore failed backup operations and write to the local cache.
@@ -189,17 +185,22 @@ N
 // . Cache name: Specifies the name of the remote cache that uses the local cache as a backup.
 // . Remote site: Specifies the name of the remote site that backs up data to the local cache.
 
-== Transactional: 
+== Transactional
 
-. Transaction mode: Configure the mode that Infinispan uses when carrying out transactions to ensure the cache state is consistent.
-* NON_XA: Cache will enlist within transactions as a javax.transaction.Synchronization.
-* NON_DURABLE_XA: Cache will enlist within transactions as a javax.transaction.xa.XAResource, without recovery.
-* FULL_XA: Cache will enlist within transactions as a javax.transaction.xa.XAResource, with recovery.
+.Transaction mode
+Configure the mode that Infinispan uses when carrying out transactions to ensure the cache state is consistent.
 
-. Locking mode: Configure how Infinispan locks keys to perform write operations for transactions. Locking keys adds contention that increases latency for write operations. You can adjust the amount of contention by using optimistic or pessimistic locking.
-* Optimistic: Infinispan locks keys when it invokes the commit() method. Keys are locked for shorter periods of time which reduces overall latency but makes transaction recovery less efficient.
-* Pessimistic: Infinispan locks keys when it invokes the put() method. Keys are locked for longer periods of time which increases latency but makes transaction recovery more efficient.
+NON_XA:: Cache will enlist within transactions as a `javax.transaction.Synchronization`.
+NON_DURABLE_XA:: Cache will enlist within transactions as a `javax.transaction.xa.XAResource`, without recovery.
+FULL_XA:: Cache will enlist within transactions as a `javax.transaction.xa.XAResource`, with recovery.
 
+.Locking mode
+Configure how Infinispan locks keys to perform write operations for transactions. Locking keys adds contention that increases latency for write operations. You can adjust the amount of contention by using optimistic or pessimistic locking.
+
+Optimistic:: Infinispan locks keys when it invokes the `commit()` method. Keys are locked for shorter periods of time which reduces overall latency but makes transaction recovery less efficient.
+Pessimistic:: Infinispan locks keys when it invokes the `put()` method. Keys are locked for longer periods of time which increases latency but makes transaction recovery more efficient.
+
+////
 .Transaction tuning
 . Read isolation level: Read isolation levels guarantee whether or not data in the cache has changed during a transaction.
 * Repeatable read: Read operations return the same value that Infinispan initially retrieves for an entry during a transaction. This is the default read isolation level because it guarantees consistency.
@@ -213,29 +214,35 @@ Stop timeout: Sets the amount of time, in milliseconds, that Infinispan waits fo
 . Transaction manager lookup: Specifies a lookup class that returns the TransactionManager to initialize.
 
 . Recovery cache: Specifies the cache that stores information to recover in-doubt transactions.
+////
 
-== Persistence: 
+== Persistence
 Configure non-volatile storage so entries remain available after cluster restarts.
 
-. Passivation: Infinispan writes entries to persistent storage when it evicts those entries from memory. Passivation ensures that only a single copy of an entry is maintained, either in-memory or in a cache store, and prevents unnecessary and expensive writes to persistent storage.
+.Passivation
+Infinispan writes entries to persistent storage when it evicts those entries from memory. Passivation ensures that only a single copy of an entry is maintained, either in-memory or in a cache store, and prevents unnecessary and expensive writes to persistent storage.
 
-. Connection attempts: The number of times Infinispan tries to connect to the cache store. The default value is 10.
+.Connection attempts
+The number of times Infinispan tries to connect to the cache store. The default value is 10.
 
-. Connection interval: An interval, in milliseconds, between connection attempts. The default value is 50.
+.Connection interval
+An interval, in milliseconds, between connection attempts. The default value is 50.
 
-. Availability interval: An interval, in milliseconds, between which Infinispan polls the cache store to ensure it is available. The default value is 1000.
+.Availability interval
+An interval, in milliseconds, between which Infinispan polls the cache store to ensure it is available. The default value is 1000.
 
-. Persistent storage configuration: 
-.. File store: File-based cache store on the local host filesystem. For clustered caches, file-based cache stores are unique to each Infinispan node.
-.. Remote store: Remote cache stores use the Hot Rod protocol to store data on Infinispan clusters.
-.. Table SQL store: Load entries from a single database table. Ensure that the appropriate JDBC driver is available to the Infinispan cluster.
-.. Query SQL store: Use SQL queries to load entries from one or more database tables, including sub-columns. You can also perform insert, update, and delete operations. You must ensure that the appropriate JDBC driver is available to the Infinispan cluster.
-.. JDBC string-based store: Use a relational database for persistent storage through a JDBC connection. Ensure that the appropriate JDBC driver is available to the Infinispan cluster.
-.. RocksDB store: A RocksDB cache store uses two databases; one as a primary store and another to hold expired entries.
-.. Custom store: Use a custom cache store that you implement with the Infinispan Persistence SPI.
+.Persistent storage configuration
+File store:: File-based cache store on the local host filesystem. For clustered caches, file-based cache stores are unique to each Infinispan node.
+Remote store:: Remote cache stores use the Hot Rod protocol to store data on Infinispan clusters.
+Table SQL store:: Load entries from a single database table. Ensure that the appropriate JDBC driver is available to the Infinispan cluster.
+Query SQL store:: Use SQL queries to load entries from one or more database tables, including sub-columns. You can also perform insert, update, and delete operations. You must ensure that the appropriate JDBC driver is available to the Infinispan cluster.
+JDBC string-based store:: Use a relational database for persistent storage through a JDBC connection. Ensure that the appropriate JDBC driver is available to the Infinispan cluster.
+RocksDB store:: A RocksDB cache store uses two databases; one as a primary store and another to hold expired entries.
+Custom store:: Use a custom cache store that you implement with the Infinispan Persistence SPI.
 
-== Advanced/cache tuning 
-. Storage type: 
+////
+== Advanced/cache tuning
+. Storage type:
 * HEAP: Store entries in the JVM heap. This is the default storage type.
 * OFF_HEAP: JVM heap is a managed memory space. Off-heap storage is native system memory outside JVM memory management. Off-heap storage uses less memory per entry compared with JVM heap storage and can improve performance by avoiding garbage collection (GC) runs.
 
@@ -245,3 +252,4 @@ Configure non-volatile storage so entries remain available after cluster restart
 . Lock timeout: The amount of time, in milliseconds, to wait for a contented lock.
 
 . Lock striping: Uses a shared pool of locks for all entries in the cache. Striping lowers the memory footprint for locks but can reduce concurrency. If you disable striping, a lock is created for each entry in the cache.
+////
