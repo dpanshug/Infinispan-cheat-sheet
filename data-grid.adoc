@@ -5,11 +5,28 @@ This cheat sheet shows Infinispan cache configuration options and capabilities t
 Distributed:: Distributed caches offer linear scalability and efficient memory usage by creating fewer copies of each entry across the cluster.
 +
 Number of owners: Distributed caches store a number of copies for each cache entry that is equal to the Number of owners that you configure.
+[,xml]
+----
+<distributed-cache owners="1"> </distributed-cache>
+----
+
 Replicated:: Replicated caches offer data guarantees and fault tolerance by creating a copy of all entries on each node in the cluster.
+[,xml]
+----
+<replicated-cache> </replicated-cache>
+----
 
 .Cluster replication
 Synchronous replication:: Helps to keep your data consistent but adds latency to cluster traffic that reduces throughput for cache writes.
+[,xml]
+----
+<distributed-cache owners="1" mode="SYNC"> </distributed-cache>
+----
 Asynchronous replication:: Reduces latency and increases the speed of write operations but leads to data inconsistency and provides a lower guarantee against data loss.
+[,xml]
+----
+<distributed-cache mode="ASYNC"> </distributed-cache>
+----
 
 == Cache configuration options
 
@@ -17,12 +34,37 @@ Encoding:: A format, identified by a media type, that Infinispan uses to store k
 +
 TIP: Infinispan recommends the application/x-protostream media type. Protobuf gives you excellent performance as well as interoperability between client applications in different programming languages for both Hot Rod and REST endpoints.
 
+[,xml]
+----
+<distributed-cache mode="SYNC">
+  <encoding>
+    <key media-type="application/x-protostream"/>
+    <value media-type="application/x-protostream"/>
+  </encoding>
+</distributed-cache>
+----
+
 Expiration::
 Expiration removes entries based on a lifespan or maximum idle time and takes effect across clusters.
 . Lifespan: The maximum amount of time, in milliseconds, that cache entries can exist. If you set the value to -1, entries never expire.
 . Max-idle: The maximum amount of time, in milliseconds, that cache entries can remain idle. If no operations are performed on entries within the maximum idle time, the entries expire across the cluster. If you set the value to -1, entries never expire.
 
+[,xml]
+----
+<distributed-cache>
+  <expiration lifespan="5000"
+              max-idle="1000" />
+</distributed-cache>
+----
+
+
 Statistics:: Enable collecting statistics for your cache. Keep disabled for optimal performance. 
+
+[,xml]
+----
+<distributed-cache statistics="true">
+</distributed-cache>
+----
 
 Infinispan capabilities:: 
 * Bounded 
@@ -38,7 +80,22 @@ Control the size of the cache by configuring Infinispan to evict entries.
 Eviction strategies:::
 Eviction always takes place when you define either the max-size or the max-count (but not both) for the data container. 
 . Max size: Defines the size of the data container in bytes. Eviction occurs when the approximate memory usage of the data container exceeds the maximum size.
+
+[,xml]
+----
+<distributed-cache>
+  <memory max-size="12MB" when-full="REMOVE"/>
+</distributed-cache>
+----
+
 . Max count: Defines the size of the data container by number of entries. Eviction occurs after the container size exceeds the maximum count.
+
+[,xml]
+----
+<distributed-cache>
+	<memory max-count="124" when-full="REMOVE"/>
+</distributed-cache>
+----
 
 If no strategy is defined, but max-count or max-size is configured, REMOVE is used.
 
