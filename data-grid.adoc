@@ -5,6 +5,11 @@ Use the following information and configuration examples as a quick reference fo
 
 Distributed:: Distributed caches offer linear scalability and efficient memory usage by creating fewer copies of each entry across the cluster.
 Distributed caches store a number of copies for each cache entry that is equal to the *Number of owners* that you configure.
++
+[,xml]
+----
+<distributed-cache> </distributed-cache>
+----
 
 Replicated:: Replicated caches offer data guarantees and fault tolerance by creating a copy of all entries on each node in the cluster.
 +
@@ -110,19 +115,64 @@ Create indexes of values in your caches for faster queries and full-text search 
 
 .Index storage
 Persistent:: On the host file system, which is the default and persists indexes between restarts.
++
+[,xml]
+----
+<distributed-cache>
+  <indexing storage="filesystem">
+    <!-- Indexing configuration goes here. -->
+  </indexing>
+</distributed-cache>
+----
+
 Volatile:: In JVM heap memory, which means that indexes do not survive restarts. You should store indexes in JVM heap memory only for small datasets.
++
+[,xml]
+----
+<distributed-cache>
+  <indexing storage="local-heap">
+    <!-- Indexing configuration goes here. -->
+  </indexing>
+</distributed-cache>
+----
 
-.Index startup mode
-Indexing operations that ensure the index is consistent with data in the cache.
-
-Purge:: Clears the index when the cache starts.
-Reindex:: Rebuilds the index when the cache starts.
-Auto:: Automatically triggers an indexing operation when the cache starts. If data is volatile and the index is persistent then the cache is cleared when it starts. If data is persistent and the index is volatile then the cache is reindexed when it starts.
-None:: Cache startup does not trigger an indexing operation. This is the default value.
 
 Index reader:: The index reader provides access to the indexes to perform queries. As the index content changes, Infinispan needs to refresh the reader so that search results are up to date.
++
+[,xml]
+----
+<distributed-cache>
+  <indexing storage="filesystem" path="${java.io.tmpdir}/baseDir">
+    <!-- Sets an interval of one second for the index reader. -->
+    <index-reader refresh-interval="1000"/>
+    <!-- Additional indexing configuration goes here. -->
+  </indexing>
+</distributed-cache>
+----
 
 Index writer:: The index writer constructs an index composed of one or more segments (sub-indexes) that can be merged over time to improve performance.
++
+[,xml]
+----
+<distributed-cache>
+  <indexing storage="filesystem" path="${java.io.tmpdir}/baseDir">
+    <index-writer commit-interval="2000"
+                  low-level-trace="false"
+                  max-buffered-entries="32"
+                  queue-count="1"
+                  queue-size="10000"
+                  ram-buffer-size="400"
+                  thread-pool-size="2">
+      <index-merge calibrate-by-deletes="true"
+                   factor="3"
+                   max-entries="2000"
+                   min-size="10"
+                   max-size="20"/>
+    </index-writer>
+    <!-- Additional indexing configuration goes here. -->
+  </indexing>
+</distributed-cache>
+----
 
 == Authorization
 Secure your deployment by restricting user access to data.
@@ -133,6 +183,17 @@ Secure your deployment by restricting user access to data.
 * Admin
 * Monitor
 * Deployer
++
+[,xml]
+----
+<distributed-cache>
+	<security>
+        <!-- Multiple roles can be used -->
+		<authorization enabled="true" 
+                  roles="observer application admin monitor"/>
+	</security>
+</distributed-cache>
+----
 
 == Backups
 Define backup locations for cache data and modify state transfer properties.
@@ -142,35 +203,33 @@ Site name:: The name of the remote site.
 Backup strategy:: Sets the strategy for backing up to a remote site. Infinispan performs conflict resolution with the asynchronous backup strategy.
 * ASYNC
 * SYNC
++
+[,xml]
+----
+<distributed-cache>
+  <backups>
+    <backup site="NYC"
+            strategy="ASYNC"
+            timeout="10000" />
+  </backups>
+</distributed-cache>
+----
 
-Merge policy:: A policy on how Infinispan resolves conflicting entries between backup locations when using the ASYNC strategy. You can specify one of the default merge policies or the fully qualified name of a class that implements the `XSiteEntryMergePolicy` interface.
-
-Maximum cleanup delay:: The maximum delay, in milliseconds, between which tombstone cleanup tasks run when using the ASYNC strategy.
-
-Number of tombstone:: With the asynchronous backup strategy Infinispan stores metadata, known as tombstones, when it removes keys. Specify the target number of tombstones. If the number of tombstones increases beyond this number then Infinispan runs the cleanup task more frequently. Likewise, if the number of tombstones is less than this number then Infinispan does not run the cleanup task as frequently.
-
-// .. Failure policy: Controls how local writes to caches are handled if synchronous backup operations fail.
-// * Ignore: Ignore failed backup operations and write to the local cache.
-// * Warn: Log exceptions when backup operations fail and write to the local cache.
-// * Fail: Throw exceptions when backup operations fail and attempt to stop writes to the local cache.
-// * Custom: Use a custom failure policy. Requires the "failure-policy-class" attribute.
-// .. Timeout: Specify the timeout, in milliseconds, for synchronous and asynchronous backup operations.
-// .. Failure policy class: Specify the fully qualified name of a class that implements the CustomFailurePolicy interface if you select CUSTOM as the failure policy.
-// .. Take offline: Operations to replicate data across clusters are resource intensive. To excessive resource usage Infinispan can take backup locations offline automatically.
-// ... After failures: Set the number of consecutive failures that can occur for backup operations before sites go offline. Specify a negative or zero value to use minimum wait time only.
-// ... Minimum wait: Sets the minimum time to wait, in milliseconds, before sites go offline when backup operations fail. If subsequent operations are successful, the minimum wait time is reset. If you set "after-failures", sites go offline when the wait time is reached and the number of failures occurs.
-// .. State transfer: Modify state transfer operations that synchronize data between sites.
-// ... State transfer mode: Control whether state transfer happens manually on user action, which is the default, or automatically when backup locations come online. Infinispan can perform automatic state transfer with the ASYNC backup strategy only.
-// * Manual: Users must bring backup locations online and initiate state transfer between remote sites.
-// * Auto: Backup locations that use the asynchronous backup strategy can automatically come back online. State transfer operations begin when the remote site connections are stable.
-// ... Chunk size: Specify how many cache entries are batched in each transfer request.
-// ... Timeout: Specify the time to wait, in milliseconds, for the backup site to acknowledge the state chunk received and applied. The default value is 20 minutes.
-// ... Maximum retries: Set the maximum number of retry attempts for push state failures. Specify a value of 0 (zero) to disable retry attempts. The default value is 30.
-// ... Wait time: Set the amount of time, in milliseconds, to wait between retry attempts for push state failures. You must specify a value of 1 or more. The default value is 2000.
-
-// .If the cache receives updates from a cache with a different name:
-// . Cache name: Specifies the name of the remote cache that uses the local cache as a backup.
-// . Remote site: Specifies the name of the remote site that backs up data to the local cache.
+.If the cache receives updates from a cache with a different name:
+. Cache name: Specifies the name of the remote cache that uses the local cache as a backup.
+. Remote site: Specifies the name of the remote site that backs up data to the local cache.
++
+[,xml]
+----
+<distributed-cache name="eu-customers">
+  <backups>
+    <backup site="LON"
+            strategy="ASYNC" />
+  </backups>
+  <backup-for remote-cache="customers"
+              remote-site="LON" />
+</distributed-cache>
+----
 
 == Transactional
 
@@ -186,57 +245,50 @@ Configure how Infinispan locks keys to perform write operations for transactions
 
 Optimistic:: Infinispan locks keys when it invokes the `commit()` method. Keys are locked for shorter periods of time which reduces overall latency but makes transaction recovery less efficient.
 Pessimistic:: Infinispan locks keys when it invokes the `put()` method. Keys are locked for longer periods of time which increases latency but makes transaction recovery more efficient.
-
-////
-.Transaction tuning
-. Read isolation level: Read isolation levels guarantee whether or not data in the cache has changed during a transaction.
-* Repeatable read: Read operations return the same value that Infinispan initially retrieves for an entry during a transaction. This is the default read isolation level because it guarantees consistency.
-* Read committed: Read operations might return different values if another transaction modifies the entries.
-Stop timeout: Sets the amount of time, in milliseconds, that Infinispan waits for ongoing transactions when the cache is stopped.
-
-. Complete timeout: Sets the maximum amount of time, in milliseconds, that transactions can run. Infinispan aborts transactions that do not completed before reaching the timeout.
-
-. Reaper interval: Sets the amount of time, in milliseconds, between which Infinispan checks if transactions are complete.
-
-. Transaction manager lookup: Specifies a lookup class that returns the TransactionManager to initialize.
-
-. Recovery cache: Specifies the cache that stores information to recover in-doubt transactions.
-////
++
+[,xml]
+----
+<distributed-cache name="deee" mode="SYNC">
+	<transaction  
+          <!-- Transaction mode -->
+                mode="NON_XA" 
+          <!-- Locking mode -->
+                locking="OPTIMISTIC"/>
+</distributed-cache>
+----
 
 == Persistence
 Configure non-volatile storage so entries remain available after cluster restarts.
 
 .Passivation
 Infinispan writes entries to persistent storage when it evicts those entries from memory. Passivation ensures that only a single copy of an entry is maintained, either in-memory or in a cache store, and prevents unnecessary and expensive writes to persistent storage.
-
-.Connection attempts
-The number of times Infinispan tries to connect to the cache store. The default value is 10.
-
-.Connection interval
-An interval, in milliseconds, between connection attempts. The default value is 50.
-
-.Availability interval
-An interval, in milliseconds, between which Infinispan polls the cache store to ensure it is available. The default value is 1000.
+[,xml]
+----
+<distributed-cache>
+  <persistence passivation="true">
+    <!-- Persistence configuration goes here. -->
+  </persistence>
+</distributed-cache>
+----
 
 .Persistent storage configuration
 File store:: File-based cache store on the local host filesystem. For clustered caches, file-based cache stores are unique to each Infinispan node.
++
+[,xml]
+----
+<distributed-cache>
+	<persistence passivation="false">
+		<file-store>
+			<data path="path/to/data"/>
+			<index path="path/to/index"/>
+		</file-store>
+	</persistence>
+</distributed-cache>
+----
+
 Remote store:: Remote cache stores use the Hot Rod protocol to store data on Infinispan clusters.
 Table SQL store:: Load entries from a single database table. Ensure that the appropriate JDBC driver is available to the Infinispan cluster.
 Query SQL store:: Use SQL queries to load entries from one or more database tables, including sub-columns. You can also perform insert, update, and delete operations. You must ensure that the appropriate JDBC driver is available to the Infinispan cluster.
 JDBC string-based store:: Use a relational database for persistent storage through a JDBC connection. Ensure that the appropriate JDBC driver is available to the Infinispan cluster.
 RocksDB store:: A RocksDB cache store uses two databases; one as a primary store and another to hold expired entries.
 Custom store:: Use a custom cache store that you implement with the Infinispan Persistence SPI.
-
-////
-== Advanced/cache tuning
-. Storage type:
-* HEAP: Store entries in the JVM heap. This is the default storage type.
-* OFF_HEAP: JVM heap is a managed memory space. Off-heap storage is native system memory outside JVM memory management. Off-heap storage uses less memory per entry compared with JVM heap storage and can improve performance by avoiding garbage collection (GC) runs.
-
-.Adjust locking for concurrent access
-. Concurrency level: Configures the number of locks to create in the shared pool for lock striping.
-
-. Lock timeout: The amount of time, in milliseconds, to wait for a contented lock.
-
-. Lock striping: Uses a shared pool of locks for all entries in the cache. Striping lowers the memory footprint for locks but can reduce concurrency. If you disable striping, a lock is created for each entry in the cache.
-////
