@@ -1,4 +1,4 @@
-= Infinispan cache configuration
+= Infinispan cache configuration cheat sheet
 Use the following information and configuration examples as a quick reference for creating and configuring Infinispan caches.
 
 == Clustered cache modes
@@ -52,6 +52,7 @@ TIP: Infinispan recommends the `application/x-protostream` media type. Protobuf 
 
 .Expiration
 Expiration removes entries based on a lifespan or maximum idle time. Expiration takes effect across Infinispan clusters.
+
 Lifespan:: The maximum amount of time, in milliseconds, that cache entries can exist. If you set the value to -1, entries never expire.
 Max-idle:: The maximum amount of time, in milliseconds, that cache entries can remain idle. If no operations are performed on entries within the maximum idle time, the entries expire across the cluster. If you set the value to -1, entries never expire.
 
@@ -108,7 +109,7 @@ Max count:: Defines the size of the data container by number of entries. Evictio
 * `REMOVE` Infinispan performs eviction. This is the default strategy when you define a size for the data container.
 * `EXCEPTION` Infinispan throws an exception instead of evicting entries.
 
-If no strategy is defined, but max-count or max-size is configured, REMOVE is used.
+If no strategy is defined, but max-count or max-size is configured, `REMOVE` is used.
 
 == Indexed caches
 Create indexes of values in your caches for faster queries and full-text search capabilities.
@@ -135,7 +136,6 @@ Volatile:: In JVM heap memory, which means that indexes do not survive restarts.
   </indexing>
 </distributed-cache>
 ----
-
 
 Index reader:: The index reader provides access to the indexes to perform queries. As the index content changes, Infinispan needs to refresh the reader so that search results are up to date.
 +
@@ -184,12 +184,12 @@ Secure your deployment by restricting user access to data.
 * Monitor
 * Deployer
 +
-[,xml]
+[source,xml]
 ----
 <distributed-cache>
 	<security>
         <!-- Multiple roles can be used -->
-		<authorization enabled="true" 
+		<authorization enabled="true"
                   roles="observer application admin monitor"/>
 	</security>
 </distributed-cache>
@@ -198,13 +198,20 @@ Secure your deployment by restricting user access to data.
 == Backups
 Define backup locations for cache data and modify state transfer properties.
 
-.Site configuration
-Site name:: The name of the remote site.
-Backup strategy:: Sets the strategy for backing up to a remote site. Infinispan performs conflict resolution with the asynchronous backup strategy.
-* ASYNC
-* SYNC
-+
-[,xml]
+Backup strategy:: To back up data to a different cluster, Infinispan can use either a synchronous or asynchronous strategy.
+Infinispan performs conflict resolution with the asynchronous backup strategy.
+
+Remote site:: Specifies the name of the remote site that backs up data to the local cache.
+Remote cache:: Specifies the name of the remote cache that uses the local cache as a backup.
+Timeout:: Specifies timeout, in milliseconds, for synchronous and asynchronous backup operations.
+
+[cols="a,a", options="header"]
+|===
+| Cluster LON
+| Cluster NYC
+
+|
+[source,xml]
 ----
 <distributed-cache>
   <backups>
@@ -215,21 +222,21 @@ Backup strategy:: Sets the strategy for backing up to a remote site. Infinispan 
 </distributed-cache>
 ----
 
-.If the cache receives updates from a cache with a different name:
-. Cache name: Specifies the name of the remote cache that uses the local cache as a backup.
-. Remote site: Specifies the name of the remote site that backs up data to the local cache.
-+
-[,xml]
+|
+[source,xml]
 ----
 <distributed-cache name="eu-customers">
   <backups>
     <backup site="LON"
             strategy="ASYNC" />
   </backups>
+    <!-- Defines the local cache as a backup for a remote cache with a different name. -->
   <backup-for remote-cache="customers"
               remote-site="LON" />
 </distributed-cache>
 ----
+
+|===
 
 == Transactional
 
@@ -249,9 +256,9 @@ Pessimistic:: Infinispan locks keys when it invokes the `put()` method. Keys are
 [,xml]
 ----
 <distributed-cache name="deee" mode="SYNC">
-	<transaction  
+	<transaction
           <!-- Transaction mode -->
-                mode="NON_XA" 
+                mode="NON_XA"
           <!-- Locking mode -->
                 locking="OPTIMISTIC"/>
 </distributed-cache>
