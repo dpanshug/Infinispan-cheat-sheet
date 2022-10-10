@@ -6,31 +6,31 @@ Use the following information and configuration examples as a quick reference fo
 Distributed:: Distributed caches offer linear scalability and efficient memory usage by creating fewer copies of each entry across the cluster.
 Distributed caches store a number of copies for each cache entry that is equal to the *Number of owners* that you configure.
 +
-[,xml]
+[source,xml]
 ----
-<distributed-cache> </distributed-cache>
+<distributed-cache />
 ----
 
 Replicated:: Replicated caches offer data guarantees and fault tolerance by creating a copy of all entries on each node in the cluster.
 +
-[,xml]
+[source,xml]
 ----
-<replicated-cache> </replicated-cache>
+<replicated-cache />
 ----
 
 == Cluster replication
 
 Synchronous replication:: Helps to keep your data consistent but adds latency to cluster traffic that reduces throughput for cache writes.
 +
-[,xml]
+[source,xml]
 ----
-<distributed-cache owners="1" mode="SYNC"> </distributed-cache>
+<distributed-cache mode="SYNC" />
 ----
 Asynchronous replication:: Reduces latency and increases the speed of write operations but leads to data inconsistency and provides a lower guarantee against data loss.
 +
-[,xml]
+[source,xml]
 ----
-<distributed-cache mode="ASYNC"> </distributed-cache>
+<distributed-cache mode="ASYNC" />
 ----
 
 == Cache configuration options
@@ -40,7 +40,7 @@ A format, identified by a media type, that Infinispan uses to store keys and val
 
 TIP: Infinispan recommends the `application/x-protostream` media type. Protobuf gives you excellent performance as well as interoperability between client applications in different programming languages for both Hot Rod and REST endpoints.
 
-[,xml]
+[source,xml]
 ----
 <distributed-cache mode="SYNC">
   <encoding>
@@ -54,9 +54,12 @@ TIP: Infinispan recommends the `application/x-protostream` media type. Protobuf 
 Expiration removes entries based on a lifespan or maximum idle time. Expiration takes effect across Infinispan clusters.
 
 Lifespan:: The maximum amount of time, in milliseconds, that cache entries can exist. If you set the value to -1, entries never expire.
+
 Max-idle:: The maximum amount of time, in milliseconds, that cache entries can remain idle. If no operations are performed on entries within the maximum idle time, the entries expire across the cluster. If you set the value to -1, entries never expire.
 
-[,xml]
+TIP: This would create a performance issue for get() update all instance, lifespan is better if very close.
+
+[source,xml]
 ----
 <distributed-cache>
   <expiration lifespan="5000"
@@ -67,10 +70,9 @@ Max-idle:: The maximum amount of time, in milliseconds, that cache entries can r
 .Statistics
 Start collecting statistics for your cache. Keep disabled for optimal performance.
 
-[,xml]
+[source,xml]
 ----
-<distributed-cache statistics="true">
-</distributed-cache>
+<distributed-cache statistics="true" />
 ----
 
 == Infinispan capabilities
@@ -89,7 +91,7 @@ Eviction always takes place when you define either the max-size or the max-count
 
 Max size:: Defines the size of the data container in bytes. Eviction occurs when the approximate memory usage of the data container exceeds the maximum size.
 +
-[,xml]
+[source,xml]
 ----
 <distributed-cache>
   <memory max-size="12MB" when-full="REMOVE"/>
@@ -98,7 +100,7 @@ Max size:: Defines the size of the data container in bytes. Eviction occurs when
 
 Max count:: Defines the size of the data container by number of entries. Eviction occurs after the container size exceeds the maximum count.
 +
-[,xml]
+[source,xml]
 ----
 <distributed-cache>
 	<memory max-count="124" when-full="REMOVE"/>
@@ -107,6 +109,9 @@ Max count:: Defines the size of the data container by number of entries. Evictio
 
 .Eviction strategies
 * `REMOVE` Infinispan performs eviction. This is the default strategy when you define a size for the data container.
+
+TIP: Would lead to cluster inconsistency if no persistence is configured.
+
 * `EXCEPTION` Infinispan throws an exception instead of evicting entries.
 
 If no strategy is defined, but max-count or max-size is configured, `REMOVE` is used.
@@ -117,7 +122,7 @@ Create indexes of values in your caches for faster queries and full-text search 
 .Index storage
 Persistent:: On the host file system, which is the default and persists indexes between restarts.
 +
-[,xml]
+[source,xml]
 ----
 <distributed-cache>
   <indexing storage="filesystem">
@@ -128,7 +133,7 @@ Persistent:: On the host file system, which is the default and persists indexes 
 
 Volatile:: In JVM heap memory, which means that indexes do not survive restarts. You should store indexes in JVM heap memory only for small datasets.
 +
-[,xml]
+[source,xml]
 ----
 <distributed-cache>
   <indexing storage="local-heap">
@@ -139,7 +144,7 @@ Volatile:: In JVM heap memory, which means that indexes do not survive restarts.
 
 Index reader:: The index reader provides access to the indexes to perform queries. As the index content changes, Infinispan needs to refresh the reader so that search results are up to date.
 +
-[,xml]
+[source,xml]
 ----
 <distributed-cache>
   <indexing storage="filesystem" path="${java.io.tmpdir}/baseDir">
@@ -152,7 +157,7 @@ Index reader:: The index reader provides access to the indexes to perform querie
 
 Index writer:: The index writer constructs an index composed of one or more segments (sub-indexes) that can be merged over time to improve performance.
 +
-[,xml]
+[source,xml]
 ----
 <distributed-cache>
   <indexing storage="filesystem" path="${java.io.tmpdir}/baseDir">
@@ -253,7 +258,7 @@ Configure how Infinispan locks keys to perform write operations for transactions
 Optimistic:: Infinispan locks keys when it invokes the `commit()` method. Keys are locked for shorter periods of time which reduces overall latency but makes transaction recovery less efficient.
 Pessimistic:: Infinispan locks keys when it invokes the `put()` method. Keys are locked for longer periods of time which increases latency but makes transaction recovery more efficient.
 +
-[,xml]
+[source,xml]
 ----
 <distributed-cache name="deee" mode="SYNC">
 	<transaction
@@ -269,7 +274,7 @@ Configure non-volatile storage so entries remain available after cluster restart
 
 .Passivation
 Infinispan writes entries to persistent storage when it evicts those entries from memory. Passivation ensures that only a single copy of an entry is maintained, either in-memory or in a cache store, and prevents unnecessary and expensive writes to persistent storage.
-[,xml]
+[source,xml]
 ----
 <distributed-cache>
   <persistence passivation="true">
@@ -281,7 +286,7 @@ Infinispan writes entries to persistent storage when it evicts those entries fro
 .Persistent storage configuration
 File store:: File-based cache store on the local host filesystem. For clustered caches, file-based cache stores are unique to each Infinispan node.
 +
-[,xml]
+[source,xml]
 ----
 <distributed-cache>
 	<persistence passivation="false">
@@ -299,3 +304,108 @@ Query SQL store:: Use SQL queries to load entries from one or more database tabl
 JDBC string-based store:: Use a relational database for persistent storage through a JDBC connection. Ensure that the appropriate JDBC driver is available to the Infinispan cluster.
 RocksDB store:: A RocksDB cache store uses two databases; one as a primary store and another to hold expired entries.
 Custom store:: Use a custom cache store that you implement with the Infinispan Persistence SPI.
+
+== Configuration formats
+Infinispan supports multiple configuration formats. You can use XML, JSON, or YAML to configure your deployment.
+
+.XML
+[source,xml]
+----
+<distributed-cache owners="2"
+                   mode="SYNC"
+                   statistics="true">
+  <encoding media-type="application/x-protostream"/>
+  <locking isolation="REPEATABLE_READ"/>
+  <transaction mode="FULL_XA"
+               locking="OPTIMISTIC"/>
+  <expiration lifespan="5000"
+              max-idle="1000" />
+  <memory max-count="1000000"
+          when-full="REMOVE"/>
+  <indexing enabled="true"
+            storage="local-heap">
+    <index-reader refresh-interval="1000"/>
+    <indexed-entities>
+			<indexed-entity>org.infinispan.Person</indexed-entity>
+		</indexed-entities>
+  </indexing>
+  <persistence passivation="false">
+    <!-- Persistent storage configuration. -->
+  </persistence>
+</distributed-cache>
+
+----
+
+.JSON
+[source,json]
+----
+{
+  "distributed-cache": {
+    "owners": 2,
+    "mode": "SYNC",
+    "statistics": true,
+    "encoding": {
+      "media-type": "application/x-protostream"
+    },
+    "locking": {
+      "isolation": "REPEATABLE_READ"
+    },
+    "transaction": {
+      "mode": "FULL_XA",
+      "locking": "OPTIMISTIC"
+    },
+    "expiration": {
+      "lifespan": 5000,
+      "max-idle": 1000
+    },
+    "memory": {
+      "max-count": 1000000,
+      "when-full": "REMOVE"
+    },
+    "indexing": {
+      "enabled": true,
+      "storage": "local-heap",
+      "indexed-entities": [
+        "org.infinispan.Person"
+      ],
+      "index-reader": {
+        "refresh-interval": 1000
+      }
+    },
+    "persistence": {
+      "passivation": false
+    }
+  }
+}
+----
+
+.YAML
+[source,yaml]
+----
+distributed-cache:
+  owners: 2
+  mode: SYNC
+  statistics: true
+  encoding:
+    media-type: application/x-protostream
+  locking:
+    isolation: REPEATABLE_READ
+  transaction:
+    mode: FULL_XA
+    locking: OPTIMISTIC
+  expiration:
+    lifespan: 5000
+    max-idle: 1000
+  memory:
+    max-count: 1000000
+    when-full: REMOVE
+  indexing:
+    enabled: true
+    storage: local-heap
+    index-reader:
+      refresh-interval: 1000
+    indexedEntities: 
+      - "org.infinispan.Person"
+  persistence:
+    passivation: false
+----
